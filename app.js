@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 // Configure CORS
 app.use(
   cors({
-    origin: "http://localhost:3000", // Adjust this if your frontend is hosted elsewhere
+    origin: "http://localhost:5173", // Adjust this if your frontend is hosted elsewhere
   })
 );
 
