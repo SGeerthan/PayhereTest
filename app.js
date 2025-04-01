@@ -18,6 +18,22 @@ app.use(
 // Set up routes
 app.use("/payment", paymentRoutes);
 
+app.post("/payment/notify", (req, res) => {
+  console.log("Payment notification received:", req.body);
+
+  // Extract payment details
+  const { order_id, status_code, method, amount, currency } = req.body;
+
+  if (status_code === "2") {
+    console.log(`Payment Successful for Order ID: ${order_id}`);
+    // Update database order status here
+  } else {
+    console.log(`Payment Failed or Pending for Order ID: ${order_id}`);
+  }
+
+  res.sendStatus(200); // Acknowledge receipt
+});
+
 // Start the server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

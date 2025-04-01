@@ -1,82 +1,75 @@
-const express = require("express");
-const crypto = require("crypto");
+import React from "react";
 
-const router = express.Router();
+const PaymentButton = () => {
+  const handlePayment = async () => {
+    const paymentDetails = {
+      order_id: "ItemNo12345",
+      amount: "1005.00",
+      currency: "LKR",
+      first_name: "Saman",
+      last_name: "Perera",
+      email: "samanp@gmail.com",
+      phone: "0771234567",
+      address: "No.1, Galle Road",
+      city: "Colombo",
+      country: "Sri Lanka",
+    };
 
-// Merchant details
-const merchant_id = "1229948"; // Replace with your actual Merchant ID
-const merchant_secret = "MzQyOTg1NDU3NjQxNDkwMzE5MzkyMDY0ODE3MDQ3MzgxMTYzODQ1Nw=="; // Replace with your Merchant Secret
+    try {
+      // Request backend to generate the hash value
+      const response = await fetch(
+        "https://sea-lion-app-qfh5d.ondigitalocean.app/payment/start",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(paymentDetails),
+        }
+      );
 
-router.post("/start", (req, res) => {
-  const { order_id, amount, currency } = req.body;
-  console.log("Payment request for order:", order_id);
+      if (response.ok) {
+        const { hash, merchant_id } = await response.json();
 
-  // Generate the hash value
-  const hash = crypto
-    .createHash("md5")
-    .update(
-      merchant_id +
-        order_id +
-        amount +
-        currency +
-        crypto
-          .createHash("md5")
-          .update(merchant_secret)
-          .digest("hex")
-          .toUpperCase()
-    )
-    .digest("hex")
-    .toUpperCase();
+        // Payment configuration
+        const payment = {
+          sandbox: true, // Use sandbox for testing
+          merchant_id: merchant_id,
+          return_url: "http://localhost:3000/payment/success", // Replace with your return URL
+          cancel_url: "http://localhost:3000/payment/cancel", // Replace with your cancel URL
+          notify_url:
+            "https://sea-lion-app-qfh5d.ondigitalocean.app/payment/notify", // Replace with your notify URL - This should be public IP (No Localhost)
+          order_id: paymentDetails.order_id,
+          items: "Item Title",
+          amount: paymentDetails.amount,
+          currency: paymentDetails.currency,
+          first_name: paymentDetails.first_name,
+          last_name: paymentDetails.last_name,
+          email: paymentDetails.email,
+          phone: paymentDetails.phone,
+          address: paymentDetails.address,
+          city: paymentDetails.city,
+          country: paymentDetails.country,
+          hash: hash,
+        };
 
-    console.log("Hash generated for order:", order_id);
+        // Initialize PayHere payment
+        payhere.startPayment(payment);
+      } else {
+        console.error("Failed to generate hash for payment.");
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    }
+  };
 
-  res.json({ hash, merchant_id });
-});
+  return (
+    <div>
+      <button id="payhere-payment" onClick={handlePayment}>
+        PayHere Pay
+      </button>
+    </div>
+  );
+};
 
-// Payment notification endpoint
-router.post("/notify", (req, res) => {
-
-  console.log("Payment notification received");
-  
-  const {
-    merchant_id,
-    order_id,
-    payhere_amount,
-    payhere_currency,
-    status_code,
-    md5sig,
-  } = req.body;
-
-  const local_md5sig = crypto
-    .createHash("md5")
-    .update(
-      merchant_id +
-        order_id +
-        payhere_amount +
-        payhere_currency +
-        status_code +
-        crypto
-          .createHash("md5")
-          .update(merchant_secret)
-          .digest("hex")
-          .toUpperCase()
-    )
-    .digest("hex")
-    .toUpperCase();
-
-    console.log("Payment notification for order:", order_id);
-
-
-
-  if (local_md5sig === md5sig && status_code == "2") {
-    // Payment success - update the database
-    console.log("Payment successful for order:", order_id);
-    res.sendStatus(200);
-  } else {
-    // Payment verification failed
-    console.log("Payment verification failed for order:", order_id);
-    res.sendStatus(400);
-  }
-});
-
-module.exports = router;
+export default PaymentButton;
